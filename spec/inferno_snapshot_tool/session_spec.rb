@@ -119,4 +119,35 @@ RSpec.describe InfernoSnapshotTool::Session do
       expect(session.results).to eq([{ 'test_id' => 'a' }])
     end
   end
+
+  describe 'progress reporting' do
+    it 'invokes on_progress at each lifecycle stage, including a status update while waiting' do
+      messages = []
+      progress_session = described_class.new(entry, on_progress: ->(msg) { messages << msg })
+      allow(InfernoSnapshotTool::ShellRunner).to receive(:run_json).and_return(
+        [{ 'id' => 'sess-1' }, 0], [{ 'id' => 'run-1' }, 0], [{ 'status' => 'done' }, 0], [[], 0]
+      )
+
+      progress_session.create!
+      progress_session.start_run!
+      progress_session.wait_until_done!
+      progress_session.results
+
+      expect(messages).to include(
+        a_string_matching(/Creating session/),
+        a_string_matching(/Session created: sess-1/),
+        a_string_matching(/Starting run/),
+        a_string_matching(/Run started: run-1/),
+        a_string_matching(/status: done/),
+        a_string_matching(/Fetching results/)
+      )
+    end
+
+    it 'does not emit any output when no on_progress callback is given' do
+      session.instance_variable_set(:@session_id, 'sess-1')
+      allow(InfernoSnapshotTool::ShellRunner).to receive(:run_json).and_return([{ 'status' => 'done' }, 0])
+
+      expect { session.wait_until_done! }.not_to output.to_stdout
+    end
+  end
 end

@@ -20,6 +20,20 @@ RSpec.describe InfernoSnapshotTool::CLI do
         .to output(/Interrupted — session sess-1 may still be running/).to_stderr
         .and raise_error(SystemExit) { |e| expect(e.status).to eq(130) }
     end
+
+    it 'wires session progress messages through to stdout' do
+      allow(InfernoSnapshotTool::Session).to receive(:new) do |_entry, on_progress:|
+        on_progress.call('Creating session...')
+        fake_session
+      end
+      allow(fake_session).to receive(:create!)
+      allow(fake_session).to receive(:start_run!)
+      allow(fake_session).to receive(:wait_until_done!)
+      allow(fake_session).to receive(:results).and_return([])
+      allow(InfernoSnapshotTool::SnapshotStore).to receive(:save!).and_return('spec/inferno_snapshots/au_ps_v100.json')
+
+      expect { described_class.start(%w[init au_ps_v100]) }.to output(/Creating session/).to_stdout
+    end
   end
 
   describe 'run' do

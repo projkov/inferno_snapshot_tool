@@ -9,9 +9,11 @@ module InfernoSnapshotTool
     desc 'init SUITE_KEY', 'Run the suite and save its results as the baseline snapshot'
     def init(suite_key)
       entry = Config.load(options[:config]).for(suite_key)
-      session = Session.new(entry)
+      session = Session.new(entry, on_progress: method(:puts))
       run_session!(session)
-      path = SnapshotStore.save!(entry, session.results)
+      results = session.results
+      puts "Saving snapshot to #{entry.snapshot_path}..."
+      path = SnapshotStore.save!(entry, results)
       puts "Saved snapshot for #{suite_key} to #{path}"
     rescue Interrupt
       abort_interrupted(session)
@@ -26,8 +28,9 @@ module InfernoSnapshotTool
         raise Thor::Error, "No snapshot at #{entry.snapshot_path} — run `inferno_snapshot_tool init #{suite_key}` first"
       end
 
-      session = Session.new(entry)
+      session = Session.new(entry, on_progress: method(:puts))
       run_session!(session)
+      puts 'Comparing results against the saved snapshot...'
       result = Comparator.compare(entry, session)
       Reporter.print(entry, result)
       exit(1) unless result.matched?
