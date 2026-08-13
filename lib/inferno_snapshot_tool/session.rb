@@ -15,15 +15,14 @@ module InfernoSnapshotTool
     end
 
     def create!
-      opts = base_opts
-      entry.suite_options.each { |k, v| opts += ['--suite_options', "#{k}:#{v}"] }
+      opts = hash_opt('--suite_options', entry.suite_options) + base_opts
       body, = ShellRunner.run_json('create', entry.suite_id, *opts)
       @session_id = body.fetch('id')
     end
 
     def start_run!
-      inputs = entry.inputs.flat_map { |k, v| ['--inputs', "#{k}:#{v}"] }
-      body, = ShellRunner.run_json('start_run', session_id, 'suite', *inputs, *base_opts)
+      opts = hash_opt('--inputs', entry.inputs) + base_opts
+      body, = ShellRunner.run_json('start_run', session_id, 'suite', *opts)
       @run_id = body.fetch('id')
     end
 
@@ -56,6 +55,15 @@ module InfernoSnapshotTool
 
     def base_opts
       ['--inferno_base_url', entry.inferno_base_url]
+    end
+
+    # Thor `type: :hash` options take one flag followed by multiple
+    # space-separated key:value tokens (`--inputs a:1 b:2`) — repeating the
+    # flag instead makes each occurrence overwrite the last.
+    def hash_opt(flag, hash)
+      return [] if hash.empty?
+
+      [flag, *hash.map { |k, v| "#{k}:#{v}" }]
     end
   end
 end

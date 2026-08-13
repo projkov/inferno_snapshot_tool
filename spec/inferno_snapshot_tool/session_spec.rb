@@ -21,6 +21,21 @@ RSpec.describe InfernoSnapshotTool::Session do
 
       expect(session.session_id).to eq('sess-1')
     end
+
+    it 'passes multiple suite options as one --suite_options flag, not repeated flags' do
+      multi_option_entry = InfernoSnapshotTool::Config::Entry.new('au_ps_v100', {
+                                                                     'suite_id' => 'au_ps_v100',
+                                                                     'suite_options' => { 'a' => '1', 'b' => '2' }
+                                                                   })
+      multi_option_session = described_class.new(multi_option_entry)
+
+      expect(InfernoSnapshotTool::ShellRunner).to receive(:run_json)
+        .with('create', 'au_ps_v100', '--suite_options', 'a:1', 'b:2',
+              '--inferno_base_url', 'http://localhost:4567')
+        .and_return([{ 'id' => 'sess-1' }, 0])
+
+      multi_option_session.create!
+    end
   end
 
   describe '#start_run!' do
@@ -35,6 +50,36 @@ RSpec.describe InfernoSnapshotTool::Session do
       session.start_run!
 
       expect(session.run_id).to eq('run-1')
+    end
+
+    it 'passes multiple inputs as one --inputs flag, not repeated flags' do
+      multi_input_entry = InfernoSnapshotTool::Config::Entry.new('au_ps_v100', {
+                                                                    'suite_id' => 'au_ps_v100',
+                                                                    'inputs' => { 'url' => 'https://example.org/fhir',
+                                                                                  'patient_id' => 'example-r4' }
+                                                                  })
+      multi_input_session = described_class.new(multi_input_entry)
+      multi_input_session.instance_variable_set(:@session_id, 'sess-1')
+
+      expect(InfernoSnapshotTool::ShellRunner).to receive(:run_json)
+        .with('start_run', 'sess-1', 'suite', '--inputs',
+              'url:https://example.org/fhir', 'patient_id:example-r4',
+              '--inferno_base_url', 'http://localhost:4567')
+        .and_return([{ 'id' => 'run-1' }, 0])
+
+      multi_input_session.start_run!
+    end
+
+    it 'omits the --inputs flag entirely when no inputs are configured' do
+      no_input_entry = InfernoSnapshotTool::Config::Entry.new('au_ps_v100', { 'suite_id' => 'au_ps_v100' })
+      no_input_session = described_class.new(no_input_entry)
+      no_input_session.instance_variable_set(:@session_id, 'sess-1')
+
+      expect(InfernoSnapshotTool::ShellRunner).to receive(:run_json)
+        .with('start_run', 'sess-1', 'suite', '--inferno_base_url', 'http://localhost:4567')
+        .and_return([{ 'id' => 'run-1' }, 0])
+
+      no_input_session.start_run!
     end
   end
 
