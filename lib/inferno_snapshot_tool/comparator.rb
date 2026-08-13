@@ -15,7 +15,11 @@ module InfernoSnapshotTool
               '-f', entry.snapshot_path]
       opts += ['-m'] if entry.compare_messages
       opts += ['-r'] if entry.compare_result_message
-      entry.normalized_strings.each { |pattern| opts += ['-n', pattern] }
+      # Thor `type: :array` options take one flag followed by multiple
+      # space-separated values (`-n pattern1 pattern2`) — repeating the flag
+      # instead makes each occurrence overwrite the last (same class of bug
+      # as --inputs/--suite_options in session.rb).
+      opts += ['-n', *entry.normalized_strings] unless entry.normalized_strings.empty?
 
       body, = ShellRunner.run_json(
         'compare', session.session_id, *opts, allow_exit_codes: [0, 3]
