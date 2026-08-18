@@ -46,4 +46,22 @@ RSpec.describe InfernoSnapshotTool::Config do
   it 'raises for an unknown suite key' do
     expect { described_class.load(@path).for('nope') }.to raise_error(InfernoSnapshotTool::Config::UnknownSuiteKey)
   end
+
+  describe 'ignored_keys' do
+    it 'defaults to the standard set of volatile bookkeeping fields' do
+      entry = described_class.load(@path).for('au_ps_v100')
+
+      expect(entry.ignored_keys).to eq(InfernoSnapshotTool::Config::DEFAULT_IGNORED_KEYS)
+      expect(entry.ignored_keys).to eq(%w[id created_at updated_at test_run_id test_session_id result_id timestamp])
+    end
+
+    it 'is a full override, not a merge, when configured' do
+      entry = InfernoSnapshotTool::Config::Entry.new('au_ps_v100', {
+                                                       'suite_id' => 'au_ps_v100',
+                                                       'ignored_keys' => %w[id]
+                                                     })
+
+      expect(entry.ignored_keys).to eq(%w[id])
+    end
+  end
 end

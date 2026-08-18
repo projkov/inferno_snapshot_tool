@@ -6,6 +6,8 @@ module InfernoSnapshotTool
   class Config
     class UnknownSuiteKey < StandardError; end
 
+    DEFAULT_IGNORED_KEYS = %w[id created_at updated_at test_run_id test_session_id result_id timestamp].freeze
+
     def self.load(path = 'inferno_snapshot.yml')
       raw = YAML.safe_load_file(path, aliases: true, symbolize_names: false)
       new(raw.fetch('suites'))
@@ -33,6 +35,7 @@ module InfernoSnapshotTool
       def compare_messages        = raw.fetch('compare_messages', true)
       def compare_result_message  = raw.fetch('compare_result_message', true)
       def normalized_strings      = raw.fetch('normalized_strings', [])
+      def ignored_keys            = raw.fetch('ignored_keys', DEFAULT_IGNORED_KEYS)
       def snapshot_path           = File.join(snapshot_dir, "#{key}.json")
     end
   end

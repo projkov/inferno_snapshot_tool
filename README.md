@@ -30,7 +30,24 @@ suites:
       patient_id: example-r4
     normalized_strings:
       - '/results/[0-9a-fA-F-]{36}/io/inputs/\w+'
+    ignored_keys:
+      - id
+      - created_at
+      - updated_at
+      - test_run_id
+      - test_session_id
+      - result_id
+      - timestamp
 ```
+
+`normalized_strings` affects what `run`'s comparison treats as a match (it's
+passed straight through to `inferno session compare -n`). `ignored_keys`
+affects only the *saved snapshot file*: those keys are stripped from every
+result (and from each entry in its `requests`) before `init` writes the
+file, so bookkeeping fields that change on every run — ids, timestamps, run
+IDs — don't produce noise in the snapshot's git diff. It defaults to
+`id`, `created_at`, `updated_at`, `test_run_id`, `test_session_id`,
+`result_id`, `timestamp`, so most suites don't need to set it at all.
 
 ## Usage
 
